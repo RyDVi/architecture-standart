@@ -1,0 +1,41 @@
+@startuml ContextDiagram
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+' Персоны
+Person_Ext(client, "Клиент", "Новый или действующий клиент банка")
+Person(callCenterAgent, "Оператор кол-центра", "Обрабатывает обращения клиентов")
+Person(frontOffice, "Сотрудник фронт-офиса", "Работает с клиентами в отделении")
+Person(backOffice, "Сотрудник бэк-офиса", "Обрабатывает заявки и создаёт депозиты")
+Person(itTeam, "Управление IT", "Поддерживает системы банка")
+
+System_Boundary(c1, "Системы банка") {
+    System(website, "Сайт", "Подача заявки на депозит (новые клиенты)")
+    System(internetBank, "Интернет-банк", "Подача заявки, отображение ставок")
+    System(callCenterSystem, "Система кол-центра", "CRM и задачи операторов")
+    System(smsGateway, "СМС-шлюз", "Отправка уведомлений клиентам")
+    System(abs, "АБС", "Учет операций, открытие депозитов вручную")
+    System(depositApp, "Сервис заявок на депозиты", "Буферизация и маршрутизация заявок (может масштабироваться)")
+    System(stakeService, "Сервис ставок", "Хранилище ставок, расчёты, экспорт/импорт XLS-файлов, процессы согласования ставок")
+}
+System_Ext(telecomOperator, "Телеком-оператор", "Физическая доставка СМС")
+
+Rel(client, website, "HTTPS (TLS 1.2+): Оставляет заявку (ФИО, телефон)")
+Rel(client, internetBank, "HTTPS (TLS 1.2+): Подаёт заявку и подтверждает СМС-кодом")
+Rel(client, frontOffice, "Подаёт заявку")
+Rel(callCenterAgent, callCenterSystem, "Обрабатывает заявки с сайта")
+Rel(frontOffice, abs, "Оформляет заявку на депозит")
+Rel(backOffice, abs, "Обрабатывает заявку на открытие депозита вручную. Подтверждает условия депозита")
+Rel(backOffice, stakeService, "Работает со ставками")
+Rel(itTeam, c1, "Разработка, сопровождение, внедрение новых функций")
+Rel(website, depositApp, "Передаёт заявки (новые клиенты)")
+Rel(internetBank, depositApp, "Передаёт заявки с параметрами")
+Rel(depositApp, callCenterSystem, "Передаёт лиды (REST/очередь)")
+Rel(depositApp, smsGateway, "Подтверждение заявки через СМС")
+Rel(smsGateway, telecomOperator, "Физическая доставка СМС")
+Rel(depositApp, stakeService, "Запрашивает ставки")
+Rel(abs, stakeService, "Может получать агрегированные данные по ставкам")
+Rel(callCenterSystem, abs, "Отправка обращений")
+
+
+@enduml

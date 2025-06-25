@@ -1,0 +1,61 @@
+@startuml ContainerDiagram
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+' Персоны
+Person_Ext(client, "Клиент", "Новый или действующий клиент банка")
+Person(callCenterAgent, "Оператор кол-центра", "Обрабатывает обращения клиентов")
+Person(frontOffice, "Сотрудник фронт-офиса", "Работает с клиентами в отделении")
+Person(backOffice, "Сотрудник бэк-офиса", "Обрабатывает заявки и создаёт депозиты")
+Person(itTeam, "Управление IT", "Поддерживает системы банка")
+
+System_Boundary(c1, "Системы банка") {
+  System(website, "Сайт", "Подача заявки на депозит (новые клиенты)")
+  System_Boundary(c1_ibBackend, "Интернет-банк") {
+    Container(ibWebClient, "Web-клиент ИБ", "ASP.NET MVC", "Подача заявки, подтверждение по СМС")
+    Container(ibBackend, "Сервер ИБ", ".NET Framework", "Обработка бизнес-логики, интеграция с сервисами")
+    ContainerDb(ibDb, "БД ИБ", "MS SQL", "Данные пользователей, заявки, история")
+  }
+  System(callCenterSystem, "Система кол-центра", "CRM и задачи операторов")
+  System(smsGateway, "СМС-шлюз", "Отправка уведомлений клиентам")
+  System_Boundary(c1_abs, "АБС") {
+    System(absFacade, "АБС Фасад", "Фасад для АБС, предоставляет REST API")
+    Container(absClient, "Десктоп-клиент АБС", "Delphi", "Рабочее место сотрудника банка (фронт-/бэк-офис)")
+    ContainerDb(absDb, "БД АБС", "Oracle", "Данные по счетам, депозитам, договорам")
+    Container(absPLSQL, "PL/SQL процедуры", "PL/SQL", "Бизнес-логика (открытие депозитов, расчёт ставок, согласования)")
+  }
+  System(depositApp, "Сервис заявок на депозиты", "Буферизация и маршрутизация заявок (может масштабироваться)")
+  System(stakeService, "Сервис ставок", "Хранилище ставок, расчёты, экспорт/импорт XLS-файлов, процессы согласования ставок")
+}
+System_Ext(telecomOperator, "Телеком-оператор", "Физическая доставка СМС")
+
+Rel(client, website, "HTTPS (TLS 1.2+): Оставляет заявку (ФИО, телефон)")
+Rel(client, ibBackend, "HTTPS (TLS 1.2+): Подаёт заявку и подтверждает СМС-кодом")
+Rel(client, frontOffice, "Подаёт заявку")
+Rel(callCenterAgent, callCenterSystem, "Обрабатывает заявки с сайта")
+Rel(frontOffice, absClient, "Оформляет заявку на депозит")
+Rel(backOffice, absClient, "Обрабатывает заявку на открытие депозита вручную. Подтверждает условия депозита")
+Rel(backOffice, stakeService, "Работает со ставками")
+Rel(itTeam, c1, "Разработка, сопровождение, внедрение новых функций (подробности в компонентной диаграмме)")
+
+Rel(website, depositApp, "Передаёт заявки (новые клиенты)")
+Rel(depositApp, callCenterSystem, "Передаёт лиды (REST/очередь)")
+Rel(depositApp, smsGateway, "Подтверждение заявки через СМС")
+Rel(smsGateway, telecomOperator, "Физическая доставка СМС")
+Rel(depositApp, stakeService, "Запрашивает ставки")
+
+Rel(callCenterSystem, absFacade, "Отправка обращений")
+Rel(absClient, absDb, "SQL-запросы (временно до перехода на REST API)")
+Rel(absClient, absPLSQL, "Вызов процедур (временно до перехода на REST API)")
+Rel(absClient, absFacade, "REST API")
+Rel(absPLSQL, absDb, "SQL")
+Rel(absFacade, stakeService, "Обмен данными по ставкам (импорт/экспорт)")
+Rel(absDb, stakeService, "Может получать агрегированные данные по ставкам (импорт/экспорт)")
+Rel(absFacade, absDb, "SQL-запросы")
+Rel(absFacade, absPLSQL, "Вызов процедур")
+
+Rel(ibWebClient, ibBackend, "HTTP-запросы")
+Rel(ibBackend, ibDb, "ADO.NET/SQL")
+Rel(ibBackend, depositApp, "Передаёт заявки с параметрами")
+
+@enduml
