@@ -1,0 +1,29 @@
+@startuml ContextDiagram
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+' Участники
+Person(client, "Клиент", "Новый или существующий пользователь банка")
+Person(backOffice, "Сотрудник бэк-офиса", "Обрабатывает заявки в АБС")
+Person(callCenterAgent, "Оператор кол-центра", "Обзванивает клиентов по заявкам с сайта")
+
+System(website, "Сайт банка", "Позволяет новым клиентам подать заявку на депозит")
+System(internetBank, "Интернет-банк", "Позволяет действующим клиентам открывать депозиты")
+System(callCenterSystem, "Система кол-центра", "Получает заявки с сайта и формирует задачи")
+System(smsGateway, "СМС-шлюз", "Отправка уведомлений клиенту")
+System(depositApp, "Сервис заявок на депозиты", "Обрабатывает и сохраняет заявки, маршрутизирует потоки")
+System(stakeService, "Сервис ставок", "Предоставляет актуальные и персонализированные ставки")
+System(abs, "АБС", "Создаёт и учитывает депозиты, работает вручную")
+
+' Взаимодействия
+Rel(client, website, "Оставляет заявку с ФИО и телефоном")
+Rel(client, internetBank, "Подаёт заявку на депозит, подтверждает через СМС")
+Rel(website, depositApp, "Передаёт заявку")
+Rel(internetBank, depositApp, "Передаёт заявку")
+Rel(depositApp, stakeService, "Получает актуальные ставки")
+Rel(depositApp, callCenterSystem, "Передаёт лид", "REST/Queue")
+Rel(depositApp, smsGateway, "Отправка уведомлений", "HTTP/SMS")
+Rel(depositApp, abs, "Передаёт заявки вручную оператором", "Через сотрудника")
+Rel(callCenterAgent, callCenterSystem, "Читает и обрабатывает заявки")
+Rel(backOffice, abs, "Создаёт депозит", "Ручная работа")
+
+@enduml
